@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: flask-secure-qa
+    runtime: docker
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: REQUIRE_DB_SSL
+        value: "true"
+      - key: ALLOW_MANAGER_CROSS_SCHOOL
+        value: "false"
+      - key: PAGE_SIZE
+        value: "20"

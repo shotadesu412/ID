@@ -2,7 +2,7 @@ services:
   - type: web
     name: flask-secure-qa
     runtime: docker
-    plan: free
+    plan: starter
     envVars:
       - key: SECRET_KEY
         sync: false
@@ -28,7 +28,7 @@ services:
   - type: worker
     name: celery-worker
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: "pip install -r requirements.txt"
     startCommand: "celery -A app.celery worker --loglevel=info"
     envVars:
@@ -48,6 +48,6 @@ services:
   # 3. Redis Instance
   - type: redis
     name: redis-broker
-    plan: free
+    plan: starter
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []

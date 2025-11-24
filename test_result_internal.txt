@@ -1,0 +1,14 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-9.0.1, pluggy-1.6.0 -- C:\Users\F_sho\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\prototype
+plugins: anyio-4.9.0
+collecting ... collected 5 items
+
+tests/test_auth.py::test_login_logout PASSED                             [ 20%]
+tests/test_auth.py::test_login_invalid PASSED                            [ 40%]
+tests/test_routes.py::test_student_can_post_question PASSED              [ 60%]
+tests/test_routes.py::test_manager_can_view_school_questions PASSED      [ 80%]
+tests/test_routes.py::test_csv_export PASSED                             [100%]
+
+============================== 5 passed in 4.39s ==============================

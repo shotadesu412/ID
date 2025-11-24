@@ -56,6 +56,11 @@ class Question(db.Model):
     user = db.relationship("User", backref="questions")
     school = db.relationship("School", backref="questions")
 
+    # AI解説用フィールド
+    image_path = db.Column(db.String(255), nullable=True)
+    explanation = db.Column(db.Text, nullable=True)
+    explanation_status = db.Column(db.String(20), default="pending") # pending, processing, completed, failed
+
 class AuditLog(db.Model):
     __tablename__ = "audit_logs"
     id = db.Column(db.Integer, primary_key=True)

@@ -7,12 +7,18 @@ def _normalize_db_url(url: str, require_ssl: bool) -> str:
         url = url.replace("postgres://", "postgresql://", 1)
 
     parsed = urlparse(url)
-    query = parse_qs(parsed.query)
+    
+    # Postgres以外はそのまま返す (SQLite等が壊れるのを防ぐ)
+    if not parsed.scheme.startswith("postgres"):
+        return url
 
+    query = parse_qs(parsed.query)
+    # ... (rest of logic)
+    
     if require_ssl and parsed.scheme.startswith("postgresql"):
         if "sslmode" not in query:
             query["sslmode"] = ["require"]
-        # Renderでもssl必須
+
     new_query = urlencode(query, doseq=True)
     normalized = urlunparse(
         (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
@@ -47,4 +53,7 @@ class Config:
             "MAIL_FROM": os.getenv("MAIL_FROM", "no-reply@example.com"),
             # ページング
             "PAGE_SIZE": int(os.getenv("PAGE_SIZE", "20")),
+            # Celery / Redis
+            "CELERY_BROKER_URL": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            "CELERY_RESULT_BACKEND": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         }

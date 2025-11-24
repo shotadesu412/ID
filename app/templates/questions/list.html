@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Questions</h2>
+    {% if current_user.is_student %}
+    <a href="{{ url_for('main.new_question') }}" class="btn btn-primary">New Question</a>
+    {% endif %}
+</div>
+
+{% if current_user.role in ('manager', 'hq') %}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-center">
+            <div class="col-auto">
+                <label for="school_id" class="col-form-label">School:</label>
+            </div>
+            <div class="col-auto">
+                <select name="school_id" id="school_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Schools (HQ only)</option>
+                    {% for s in schools %}
+                    <option value="{{ s.id }}" {% if current_school_id==s.id %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="mb-3 text-end">
+    <a href="{{ url_for('main.export_questions_csv', school_id=request.args.get('school_id')) }}"
+        class="btn btn-success btn-sm">Export CSV</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Content</th>
+                <th>User</th>
+                <th>School</th>
+                <th>Date</th>
+                <th>AI Explanation</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for q in questions %}
+            <tr>
+                <td>{{ q.id }}</td>
+                <td>{{ q.content }}</td>
+                <td>{{ q.user.email }}</td>
+                <td>{{ q.school.name }}</td>
+                <td>{{ q.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if q.explanation_status == 'completed' %}
+                    <button class="btn btn-info btn-sm" data-bs-toggle="modal"
+                        data-bs-target="#explainModal{{ q.id }}">View</button>
+                    {% elif q.explanation_status == 'processing' %}
+                    <span class="badge bg-warning">Processing...</span>
+                    {% elif q.image_path %}
+                    <form action="{{ url_for('main.explain_question', id=q.id) }}" method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">Explain</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link"
+                href="{{ url_for('main.list_questions', page=pagination.prev_num, school_id=request.args.get('school_id')) }}">Previous</a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ pagination.page }} of {{ pagination.pages
+                }}</span></li>
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link"
+                href="{{ url_for('main.list_questions', page=pagination.next_num, school_id=request.args.get('school_id')) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}

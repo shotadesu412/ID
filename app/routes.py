@@ -3,7 +3,8 @@ import io
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app, make_response
 from flask_login import login_required, current_user
 from .models import Question, User, School, ROLE_HQ, ROLE_MANAGER, ROLE_STUDENT
-from .utils import require_roles, ensure_question_access_or_403, resolve_view_school_id
+from .services import QuestionService, AccessControlService
+from .utils import require_roles
 from .audit import log_action
 from . import db
 
@@ -18,20 +19,10 @@ def index():
 def list_questions():
     # school 切替（権限チェック込み）
     requested_school_id = request.args.get("school_id")
-    view_school_id = resolve_view_school_id(requested_school_id)
+    view_school_id = AccessControlService.resolve_view_school_id(current_user, requested_school_id)
 
-    q = Question.query
-    if current_user.role == ROLE_STUDENT:
-        q = q.filter(Question.user_id == current_user.id)
-    elif current_user.role == ROLE_MANAGER:
-        q = q.filter(Question.school_id == view_school_id)
-    elif current_user.role == ROLE_HQ:
-        if view_school_id:
-            q = q.filter(Question.school_id == view_school_id)
-    else:
-        abort(403)
-
-    q = q.order_by(Question.created_at.desc())
+    # クエリ取得
+    q = QuestionService.get_visible_questions(current_user, view_school_id)
 
     # ページング
     page = max(int(request.args.get("page", 1)), 1)
@@ -69,25 +60,21 @@ def new_question():
 @login_required
 def export_questions_csv():
     requested_school_id = request.args.get("school_id")
-    view_school_id = resolve_view_school_id(requested_school_id)
+    view_school_id = AccessControlService.resolve_view_school_id(current_user, requested_school_id)
 
-    q = Question.query
-    if current_user.role == ROLE_STUDENT:
-        q = q.filter(Question.user_id == current_user.id)
-    elif current_user.role == ROLE_MANAGER:
-        q = q.filter(Question.school_id == view_school_id)
-    elif current_user.role == ROLE_HQ:
-        if view_school_id:
-            q = q.filter(Question.school_id == view_school_id)
-    else:
-        abort(403)
+    # クエリ取得
+    q = QuestionService.get_visible_questions(current_user, view_school_id)
 
     # CSV生成
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["id", "content", "user_email", "school_name", "created_at"])
-    for row in q.join(User, User.id == Question.user_id)\
-               .join(School, School.id == Question.school_id).all():
+    
+    # N+1対策: joinedloadで関連データを一括取得
+    from sqlalchemy.orm import joinedload
+    questions = q.options(joinedload(Question.user), joinedload(Question.school)).all()
+
+    for row in questions:
         writer.writerow([
             row.id, row.content,
             row.user.email if row.user else "",
@@ -102,3 +89,29 @@ def export_questions_csv():
 
     log_action(current_user, "export_questions", target_type="school", target_id=view_school_id)
     return response
+
+@main_bp.route("/questions/<int:id>/explain", methods=["POST"])
+@login_required
+def explain_question(id):
+    q = Question.query.get_or_404(id)
+    
+    # 権限チェック (自分の質問か、マネージャー以上)
+    if current_user.role == ROLE_STUDENT and q.user_id != current_user.id:
+        abort(403)
+    if current_user.role == ROLE_MANAGER and q.school_id != current_user.school_id:
+        abort(403)
+        
+    if not q.image_path:
+        flash("画像がないため解説できません", "warning")
+        return redirect(url_for("main.list_questions"))
+
+    # Celeryタスク起動
+    from .tasks import analyze_image_task
+    analyze_image_task.delay(q.id)
+    
+    q.explanation_status = "processing"
+    db.session.commit()
+    
+    flash("AI解説の生成を開始しました。しばらくお待ちください。", "info")
+    return redirect(url_for("main.list_questions"))
+

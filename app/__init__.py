@@ -5,15 +5,20 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_talisman import Talisman
+from celery import Celery
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+celery = Celery(__name__)
 
 def create_app():
     from .config import Config
     app = Flask(__name__)
-    app.config.from_object(Config())
+    app.config.from_mapping(Config()())
+
+    # Celery config
+    celery.conf.update(app.config)
 
     # Proxy (Render等のリバースプロキシ配下)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
@@ -49,6 +54,7 @@ def create_app():
         return render_template("errors/500.html"), 500
 
     return app
+
 
 
 

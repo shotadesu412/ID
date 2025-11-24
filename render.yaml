@@ -16,3 +16,38 @@ services:
         value: "false"
       - key: PAGE_SIZE
         value: "20"
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: redis-broker
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # 2. Background Worker (Celery)
+  - type: worker
+    name: celery-worker
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A app.celery worker --loglevel=info"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: redis-broker
+          property: connectionString
+      - key: OPENAI_API_KEY
+        fromService:
+          type: web
+          name: flask-secure-qa
+          envVarKey: OPENAI_API_KEY
+      - key: DATABASE_URL
+        sync: false
+
+  # 3. Redis Instance
+  - type: redis
+    name: redis-broker
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []

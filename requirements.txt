@@ -1,11 +1,18 @@
 Flask==3.0.3
 Flask-Login==0.6.3
-Flask-WTF==1.2.1
-Flask-SQLAlchemy==3.1.1
-SQLAlchemy==2.0.35
-alembic==1.13.2
-bcrypt==4.2.0
-psycopg2-binary==2.9.9
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+Flask-Talisman
+email-validator
+bcrypt
+psycopg2-binary
+gunicorn
+# AI & Background Tasks
+openai
+celery
+redis
+pytest
 Werkzeug==3.0.3
 gunicorn==22.0.0
 itsdangerous==2.2.0

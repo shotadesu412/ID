@@ -20,6 +20,9 @@ def init_db():
 def seed(hq_email, manager_email, student_email, password):
     """Seed minimal data."""
     with app.app_context():
+        # Ensure tables exist
+        db.create_all()
+        
         s1 = School(name="A校舎")
         s2 = School(name="B校舎")
         db.session.add_all([s1, s2])

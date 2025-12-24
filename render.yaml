@@ -38,10 +38,7 @@ services:
           name: redis-broker
           property: connectionString
       - key: OPENAI_API_KEY
-        fromService:
-          type: web
-          name: flask-secure-qa
-          envVarKey: OPENAI_API_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
 

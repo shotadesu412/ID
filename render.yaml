@@ -57,4 +57,4 @@ databases:
   - name: db-primary
     plan: starter
     databaseName: prototypedb
-    user: postgres
+    user: prototype_user

@@ -7,7 +7,9 @@ services:
       - key: SECRET_KEY
         sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: db-primary
+          property: connectionString
       - key: ENVIRONMENT
         value: production
       - key: REQUIRE_DB_SSL
@@ -40,7 +42,9 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: db-primary
+          property: connectionString
 
   # 3. Redis Instance
   - type: redis
@@ -48,3 +52,9 @@ services:
     plan: starter
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
+
+databases:
+  - name: db-primary
+    plan: starter
+    databaseName: prototypedb
+    user: postgres

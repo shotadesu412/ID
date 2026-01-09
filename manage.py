@@ -23,6 +23,11 @@ def seed(hq_email, manager_email, student_email, password):
         # Ensure tables exist
         db.create_all()
         
+        # Check if data already exists to prevent duplication errors
+        if School.query.filter_by(name="A校舎").first():
+            click.echo("Data already exists. Skipping seed.")
+            return
+
         s1 = School(name="A校舎")
         s2 = School(name="B校舎")
         db.session.add_all([s1, s2])

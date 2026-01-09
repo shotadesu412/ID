@@ -18,5 +18,5 @@
     COPY --from=build /usr/local/bin /usr/local/bin
     COPY . .
     EXPOSE 10000
-    CMD ["gunicorn", "-w", "2", "--threads", "2", "-t", "60", "-b", "0.0.0.0:10000", "wsgi:app"]
+    CMD ["sh", "-c", "python manage.py init-db && python manage.py seed && gunicorn -w 2 --threads 2 -t 60 -b 0.0.0.0:10000 wsgi:app"]
     

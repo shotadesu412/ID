@@ -55,6 +55,6 @@ services:
 
 databases:
   - name: db-primary
-    plan: starter
+    plan: free
     databaseName: prototypedb
     user: prototype_user

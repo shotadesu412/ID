@@ -58,6 +58,7 @@ class Question(db.Model):
 
     # AI解説用フィールド
     image_path = db.Column(db.String(255), nullable=True)
+    grade = db.Column(db.String(20), nullable=True)  # middle / high
     explanation = db.Column(db.Text, nullable=True)
     explanation_status = db.Column(db.String(20), default="pending") # pending, processing, completed, failed
 

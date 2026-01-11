@@ -10,6 +10,14 @@ def init_db():
     """Create all tables (for local dev)."""
     with app.app_context():
         db.create_all()
+        # Migration: Add grade column if missing
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            try:
+                conn.execute(text("ALTER TABLE questions ADD COLUMN grade VARCHAR(20)"))
+                click.echo("Added grade column.")
+            except Exception:
+                pass # Already exists
         click.echo("Tables created.")
 
 @app.cli.command("seed")

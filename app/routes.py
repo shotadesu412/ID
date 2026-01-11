@@ -45,16 +45,46 @@ def list_questions():
 @require_roles(ROLE_STUDENT)  # 学生のみ投稿
 def new_question():
     if request.method == "POST":
-        content = request.form.get("content","").strip()
-        if not content:
-            flash("内容を入力してください", "warning")
+        file = request.files.get("image")
+        grade = request.form.get("grade")
+        
+        # 画像必須
+        if not file or file.filename == '':
+            flash("画像をアップロードしてください", "warning")
         else:
-            q = Question(content=content, user_id=current_user.id, school_id=current_user.school_id)
+            # 画像保存 (Renderの一時ディスク / tmp へ保存)
+            # ※本番化の際はS3等へ保存すべき
+            import os
+            from werkzeug.utils import secure_filename
+            
+            filename = secure_filename(file.filename)
+            save_dir = "/tmp/uploads"
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, filename)
+            file.save(save_path)
+
+            q = Question(
+                content="[画像による質問]", # 内容は自動入力
+                user_id=current_user.id, 
+                school_id=current_user.school_id,
+                image_path=save_path,
+                grade=grade,
+                explanation_status="processing"
+            )
             db.session.add(q)
             db.session.commit()
-            flash("質問を投稿しました", "success")
-            return redirect(url_for("main.list_questions"))
-    return render_template("questions/new.html")
+            
+            # 自動解説タスク起動
+            from .tasks import analyze_image_task
+            analyze_image_task.delay(q.id)
+
+            flash("質問を送信しました。解説が作成されるまでお待ちください。", "success")
+            return redirect(url_for("main.new_question"))
+
+    # 履歴取得
+    history = Question.query.filter_by(user_id=current_user.id).order_by(Question.created_at.desc()).limit(10).all()
+    
+    return render_template("questions/new.html", history=history)
 
 @main_bp.route("/export/questions.csv")
 @login_required

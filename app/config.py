@@ -1,4 +1,5 @@
 import os
+import ssl
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 def _normalize_db_url(url: str, require_ssl: bool) -> str:
@@ -36,6 +37,15 @@ class Config:
         require_db_ssl = os.getenv("REQUIRE_DB_SSL", "true" if environment == "production" else "false").lower() == "true"
         db_url = _normalize_db_url(db_url_raw, require_db_ssl)
 
+        # Redis URL (fallback for dev)
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        
+        # SSL Config for Celery/Redis
+        # Render internal Redis (rediss://) uses self-signed certs, so we need ssl.CERT_NONE
+        ssl_conf = None
+        if redis_url.startswith("rediss://"):
+            ssl_conf = {"ssl_cert_reqs": ssl.CERT_NONE}
+
         return {
             "SECRET_KEY": secret,
             "SQLALCHEMY_DATABASE_URI": db_url,
@@ -54,8 +64,8 @@ class Config:
             # ページング
             "PAGE_SIZE": int(os.getenv("PAGE_SIZE", "20")),
             # Celery / Redis
-            "CELERY_BROKER_URL": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-            "CELERY_RESULT_BACKEND": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-            "CELERY_REDIS_BACKEND_USE_SSL": {"ssl_cert_reqs": None} if os.getenv("REDIS_URL", "").startswith("rediss://") else None,
-            "CELERY_BROKER_USE_SSL": {"ssl_cert_reqs": None} if os.getenv("REDIS_URL", "").startswith("rediss://") else None,
+            "CELERY_BROKER_URL": redis_url,
+            "CELERY_RESULT_BACKEND": redis_url,
+            "CELERY_REDIS_BACKEND_USE_SSL": ssl_conf,
+            "CELERY_BROKER_USE_SSL": ssl_conf,
         }

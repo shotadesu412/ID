@@ -56,4 +56,6 @@ class Config:
             # Celery / Redis
             "CELERY_BROKER_URL": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
             "CELERY_RESULT_BACKEND": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            "CELERY_REDIS_BACKEND_USE_SSL": {"ssl_cert_reqs": None} if os.getenv("REDIS_URL", "").startswith("rediss://") else None,
+            "CELERY_BROKER_USE_SSL": {"ssl_cert_reqs": None} if os.getenv("REDIS_URL", "").startswith("rediss://") else None,
         }

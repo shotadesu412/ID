@@ -14,10 +14,11 @@ def init_db():
         with db.engine.connect() as conn:
             from sqlalchemy import text
             try:
-                conn.execute(text("ALTER TABLE questions ADD COLUMN grade VARCHAR(20)"))
+                conn.execute(text("ALTER TABLE questions ADD COLUMN IF NOT EXISTS grade VARCHAR(20)"))
+                conn.commit()
                 click.echo("Added grade column.")
-            except Exception:
-                pass # Already exists
+            except Exception as e:
+                click.echo(f"Migration warning: {e}")
         click.echo("Tables created.")
 
 @app.cli.command("seed")

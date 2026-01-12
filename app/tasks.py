@@ -15,11 +15,16 @@ from .models import Question
 
 # しかし、Celeryのベストプラクティスとして、タスクは独立させるのが良い。
 # ここでは shared_task を使う。
-from celery import shared_task
+from datetime import datetime
+from openai import OpenAI
+from . import db, create_app, celery
+from .models import Question
 
+# Explicitly use the configured celery instance
+# @shared_task was falling back to unconfigured default (AMQP)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-@shared_task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3)
 def analyze_image_task(self, question_id):
     """
     画像解析タスク

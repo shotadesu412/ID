@@ -18,7 +18,12 @@ def create_app():
     app.config.from_mapping(Config()())
 
     # Celery config
-    celery.conf.update(app.config)
+    celery.conf.update(
+        broker_url=app.config["CELERY_BROKER_URL"],
+        result_backend=app.config["CELERY_RESULT_BACKEND"],
+        broker_use_ssl=app.config["CELERY_BROKER_USE_SSL"],
+        redis_backend_use_ssl=app.config["CELERY_REDIS_BACKEND_USE_SSL"],
+    )
 
     # Proxy (Render等のリバースプロキシ配下)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)

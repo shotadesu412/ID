@@ -18,11 +18,18 @@ def create_app():
     app.config.from_mapping(Config()())
 
     # Celery config
+    broker_url = app.config.get("CELERY_BROKER_URL")
+    if not broker_url:
+        print("WARNING: CELERY_BROKER_URL not found in app.config, using env var or localhost fallback")
+        broker_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    print(f"DEBUG: Celery Broker URL: {broker_url}")
+
     celery.conf.update(
-        broker_url=app.config["CELERY_BROKER_URL"],
-        result_backend=app.config["CELERY_RESULT_BACKEND"],
-        broker_use_ssl=app.config["CELERY_BROKER_USE_SSL"],
-        redis_backend_use_ssl=app.config["CELERY_REDIS_BACKEND_USE_SSL"],
+        broker_url=broker_url,
+        result_backend=app.config.get("CELERY_RESULT_BACKEND", broker_url),
+        broker_use_ssl=app.config.get("CELERY_BROKER_USE_SSL"),
+        redis_backend_use_ssl=app.config.get("CELERY_REDIS_BACKEND_USE_SSL"),
     )
 
     # Proxy (Render等のリバースプロキシ配下)

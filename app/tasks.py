@@ -24,7 +24,7 @@ from .models import Question
 # @shared_task was falling back to unconfigured default (AMQP)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-@celery.task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3, name='app.tasks.analyze_image_task')
 def analyze_image_task(self, question_id):
     """
     画像解析タスク
@@ -82,7 +82,7 @@ def analyze_image_task(self, question_id):
             """
 
             gpt_response = client.chat.completions.create(
-                model="gpt-4o-mini", # コストパフォーマンス重視
+                model="gpt-5", # コストパフォーマンス重視
                 messages=[
                     {"role": "user", "content": [
                         {"type": "text", "text": prompt},

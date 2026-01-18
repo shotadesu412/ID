@@ -82,7 +82,7 @@ def analyze_image_task(self, question_id):
             """
 
             gpt_response = client.chat.completions.create(
-                model="gpt-5", # コストパフォーマンス重視
+                model="gpt-5.2", # コストパフォーマンス重視
                 messages=[
                     {"role": "user", "content": [
                         {"type": "text", "text": prompt},

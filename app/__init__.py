@@ -78,6 +78,9 @@ def create_app():
 
     return app
 
+from . import tasks
+
+
 
 
 

@@ -10,7 +10,7 @@ from celery import Celery
 db = SQLAlchemy()
 login_manager = LoginManager()
 csrf = CSRFProtect()
-celery = Celery(__name__)
+celery = Celery(__name__, include=['app.tasks'])
 
 def create_app():
     from .config import Config
@@ -78,7 +78,7 @@ def create_app():
 
     return app
 
-from . import tasks
+
 
 
 

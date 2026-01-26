@@ -52,16 +52,13 @@ def new_question():
         if not file or file.filename == '':
             flash("画像をアップロードしてください", "warning")
         else:
-            # 画像保存 (Renderの一時ディスク / tmp へ保存)
-            # ※本番化の際はS3等へ保存すべき
-            import os
-            from werkzeug.utils import secure_filename
-            
-            filename = secure_filename(file.filename)
-            save_dir = "/tmp/uploads"
-            os.makedirs(save_dir, exist_ok=True)
-            save_path = os.path.join(save_dir, filename)
-            file.save(save_path)
+            # 画像保存 (S3)
+            from .utils_s3 import upload_file_to_s3
+            try:
+                save_path = upload_file_to_s3(file, file.filename, content_type=file.content_type)
+            except Exception as e:
+                flash(f"画像のアップロードに失敗しました: {e}", "danger")
+                return redirect(url_for("main.new_question"))
 
             q = Question(
                 content="[画像による質問]", # 内容は自動入力

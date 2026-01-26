@@ -68,4 +68,9 @@ class Config:
             "CELERY_RESULT_BACKEND": redis_url,
             "CELERY_REDIS_BACKEND_USE_SSL": ssl_conf,
             "CELERY_BROKER_USE_SSL": ssl_conf,
+            # AWS S3
+            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+            "AWS_S3_BUCKET_NAME": os.getenv("AWS_S3_BUCKET_NAME"),
+            "AWS_REGION": os.getenv("AWS_REGION", "ap-northeast-1"),
         }

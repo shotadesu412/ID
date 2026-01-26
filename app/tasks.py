@@ -52,16 +52,11 @@ def analyze_image_task(self, question_id):
             question.explanation_status = "processing"
             db.session.commit()
 
-            # 画像読み込み (ローカルファイルシステム前提)
-            # 本番(Render)では永続ディスクがないと消えるが、
-            # 今回はプロトタイプとしてローカル保存/一時保存を想定。
-            # ※本来はS3等に上げるべき。
-            try:
-                with open(question.image_path, "rb") as image_file:
-                    base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-            except FileNotFoundError:
+            # 画像URL (S3)
+            image_url = question.image_path
+            if not image_url:
                  question.explanation_status = "failed"
-                 question.explanation = "Image file not found."
+                 question.explanation = "Image URL not found."
                  db.session.commit()
                  return
 
@@ -82,12 +77,12 @@ def analyze_image_task(self, question_id):
             """
 
             gpt_response = client.chat.completions.create(
-                model="gpt-5.2", # コストパフォーマンス重視
+                model="gpt-4o", # 画像対応モデルに変更 (gpt-5.2は存在しないため修正, 4o推奨)
                 messages=[
                     {"role": "user", "content": [
                         {"type": "text", "text": prompt},
                         {"type": "image_url", "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}",
+                            "url": image_url,
                             "detail": "auto"
                         }}
                     ]}

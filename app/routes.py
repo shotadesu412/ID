@@ -73,7 +73,9 @@ def new_question():
             
             # 自動解説タスク起動
             from .tasks import analyze_image_task
-            analyze_image_task.delay(q.id)
+            print(f"DEBUG: [Web] Dispatching task for question_id={q.id}")
+            task = analyze_image_task.delay(q.id)
+            print(f"DEBUG: [Web] Task dispatched. Task ID: {task.id}")
 
             flash("質問を送信しました。解説が作成されるまでお待ちください。", "success")
             return redirect(url_for("main.new_question"))

@@ -12,6 +12,7 @@ gunicorn
 openai
 celery
 redis
+boto3
 pytest
 Werkzeug==3.0.3
 gunicorn==22.0.0

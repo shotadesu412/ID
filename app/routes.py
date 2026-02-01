@@ -1,6 +1,10 @@
 import csv
 import io
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app, make_response
+import os
+import boto3
+from urllib.parse import urlparse
+from openai import OpenAI
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app, make_response, jsonify
 from flask_login import login_required, current_user
 from .models import Question, User, School, ROLE_HQ, ROLE_MANAGER, ROLE_STUDENT
 from .services import QuestionService, AccessControlService
@@ -143,4 +147,111 @@ def explain_question(id):
     
     flash("AI解説の生成を開始しました。しばらくお待ちください。", "info")
     return redirect(url_for("main.list_questions"))
+
+
+@main_bp.route("/api/re-question", methods=["POST"])
+@login_required
+def re_question():
+    """既存の質問に対する再質問を処理する"""
+    try:
+        data = request.get_json()
+        question_id = data.get('question_id')
+        question_text = data.get('question_text')
+
+        if not question_id or not question_text:
+            return jsonify({"error": "質問IDと追加質問内容が必要です"}), 400
+
+        # Question取得
+        q = Question.query.get(question_id)
+        if not q:
+            return jsonify({"error": "元の質問が見つかりません"}), 404
+
+        # 権限チェック
+        if current_user.role == ROLE_STUDENT and q.user_id != current_user.id:
+            return jsonify({"error": "権限がありません"}), 403
+        if current_user.role == ROLE_MANAGER and q.school_id != current_user.school_id:
+            return jsonify({"error": "権限がありません"}), 403
+
+        if not q.image_path:
+            return jsonify({"error": "元の画像が見つかりません"}), 400
+
+        original_explanation = q.explanation
+        if not original_explanation:
+             return jsonify({"error": "まだ解説が生成されていません"}), 400
+
+        # 画像URL (S3 Presigned URL)
+        # NOTE: tasks.py とロジック重複。共通化すべきだが、まずは移植優先。
+        image_url = q.image_path
+        try:
+            parsed = urlparse(image_url)
+            s3_key = parsed.path.lstrip('/')
+            
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=current_app.config.get("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key=current_app.config.get("AWS_SECRET_ACCESS_KEY"),
+                region_name=current_app.config.get("AWS_REGION")
+            )
+
+            presigned_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': current_app.config.get("AWS_S3_BUCKET_NAME"),
+                    'Key': s3_key
+                },
+                ExpiresIn=300
+            )
+            image_url = presigned_url
+        except Exception as e:
+            print(f"WARNING: Failed to generate presigned URL: {e}")
+            # エラー時は元のURLを使用し、エラーは返さない(OpenAI側で失敗する可能性はある)
+
+        # Prompt
+        prompt = f"""
+        ユーザーは以前、画像（添付）で質問をし、以下の解説を受け取りました。
+
+        【以前の解説】
+        ---
+        {original_explanation}
+        ---
+
+        この解説と元の画像を踏まえて、ユーザーから以下の追加質問がありました。
+        この質問に対して、分かりやすく、丁寧に追加の解説をしてください。
+
+        【ユーザーの追加質問】
+        「{question_text}」
+
+        【指示】
+        - 元の画像と以前の解説内容を考慮して回答してください。
+        - 重要な数式は $$...$$ を使って表現してください。
+        """
+
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        gpt_response = client.chat.completions.create(
+            model="gpt-5.2",
+            messages=[
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {
+                        "url": image_url,
+                        "detail": "auto"
+                    }}
+                ]}
+            ],
+            max_tokens=1000,
+            temperature=0.7,
+            timeout=60
+        )
+
+        answer_text = gpt_response.choices[0].message.content.strip()
+        
+        # ログ記録
+        log_action(current_user, "re_question", target_type="question", target_id=q.id)
+
+        return jsonify({"success": True, "answer": answer_text})
+
+    except Exception as e:
+        print(f"Error in re_question: {str(e)}")
+        return jsonify({"error": "再質問の処理中にエラーが発生しました"}), 500
 

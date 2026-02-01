@@ -31,10 +31,6 @@ def create_app():
         result_backend=app.config.get("CELERY_RESULT_BACKEND", broker_url),
         broker_use_ssl=app.config.get("CELERY_BROKER_USE_SSL"),
         redis_backend_use_ssl=app.config.get("CELERY_REDIS_BACKEND_USE_SSL"),
-        # Legacy/Alternative keys
-        BROKER_URL=broker_url,
-        CELERY_BROKER_URL=broker_url,
-        CELERY_RESULT_BACKEND=app.config.get("CELERY_RESULT_BACKEND", broker_url),
     )
     # Ensure transport is not overridden or cached
     if broker_url.startswith("redis"):

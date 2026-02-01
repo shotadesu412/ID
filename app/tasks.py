@@ -4,6 +4,8 @@ import base64
 from datetime import datetime
 from celery import Celery
 from openai import OpenAI
+import boto3
+from urllib.parse import urlparse
 from . import db, create_app
 from .models import Question
 
@@ -53,12 +55,41 @@ def analyze_image_task(self, question_id):
             db.session.commit()
 
             # 画像URL (S3)
-            image_url = question.image_path
-            if not image_url:
+            original_url = question.image_path
+            if not original_url:
                  question.explanation_status = "failed"
                  question.explanation = "Image URL not found."
                  db.session.commit()
                  return
+
+            # Presigned URLの発行 (非公開バケット対応)
+            try:
+                # URLからキーを抽出 (https://bucket.s3.region.amazonaws.com/KEY)
+                parsed = urlparse(original_url)
+                s3_key = parsed.path.lstrip('/')
+
+                s3_client = boto3.client(
+                    "s3",
+                    aws_access_key_id=app.config["AWS_ACCESS_KEY_ID"],
+                    aws_secret_access_key=app.config["AWS_SECRET_ACCESS_KEY"],
+                    region_name=app.config["AWS_REGION"]
+                )
+
+                presigned_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': app.config["AWS_S3_BUCKET_NAME"],
+                        'Key': s3_key
+                    },
+                    ExpiresIn=300 # 5分間有効
+                )
+                image_url = presigned_url
+                print(f"DEBUG: Generated presigned URL for key: {s3_key}")
+
+            except Exception as e:
+                print(f"WARNING: Failed to generate presigned URL: {e}")
+                # 失敗時は元のURLを使用 (バケットが公開なら動く可能性があるため)
+                image_url = original_url
 
             # プロンプト作成 (saas/app.py のロジックを流用)
             # 学年判定ロジックがないため、一旦デフォルト(中学生)とする

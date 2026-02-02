@@ -45,6 +45,19 @@
                 {% if item.explanation_status == 'completed' %}
                 <div class="mt-3 bg-light p-3 rounded">
                     <pre style="white-space: pre-wrap;" class="mb-0">{{ item.explanation }}</pre>
+
+                    <!-- Re-question UI -->
+                    <hr>
+                    <div class="mt-3">
+                        <label class="form-label fw-bold text-secondary">追加で質問する</label>
+                        <div class="input-group">
+                            <textarea class="form-control" id="question_text_{{ item.id }}" rows="1"
+                                placeholder="解説のここがわかりません..."></textarea>
+                            <button class="btn btn-outline-primary" type="button"
+                                onclick="sendReQuestion({{ item.id }})">送信</button>
+                        </div>
+                        <div id="requestion_result_{{ item.id }}" class="mt-2"></div>
+                    </div>
                 </div>
                 {% elif item.explanation_status == 'failed' %}
                 <p class="text-danger mt-2">解説の生成に失敗しました: {{ item.explanation }}</p>
@@ -60,4 +73,48 @@
 
     </div>
 </div>
+
+<script>
+    async function sendReQuestion(questionId) {
+        const textArea = document.getElementById(`question_text_${questionId}`);
+        const resultDiv = document.getElementById(`requestion_result_${questionId}`);
+        const text = textArea.value.trim();
+
+        if (!text) return;
+
+        // UI Update
+        textArea.disabled = true;
+        resultDiv.innerHTML = '<span class="text-info"><i class="spinner-border spinner-border-sm"></i> AIが回答を作成中...</span>';
+
+        try {
+            const response = await fetch('/api/re-question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}' // For CSRF protection if enabled
+                },
+                body: JSON.stringify({
+                    question_id: questionId,
+                    question_text: text
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Append result
+                const answerHtml = `<div class="alert alert-success mt-2"><strong>AI:</strong><br>${data.answer.replace(/\n/g, '<br>')}</div>`;
+                resultDiv.innerHTML = answerHtml;
+                textArea.value = ''; // Clear input
+            } else {
+                resultDiv.innerHTML = `<span class="text-danger">エラー: ${data.error || '不明なエラー'}</span>`;
+            }
+        } catch (e) {
+            console.error(e);
+            resultDiv.innerHTML = '<span class="text-danger">通信エラーが発生しました</span>';
+        } finally {
+            textArea.disabled = false;
+        }
+    }
+</script>
 {% endblock %}

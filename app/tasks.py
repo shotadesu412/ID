@@ -149,14 +149,26 @@ def analyze_image_task(self, question_id):
             )
             print("DEBUG: OpenAI API returned response.")
 
-            explanation_text = gpt_response.choices[0].message.content.strip()
-
-            question.explanation = explanation_text
-            question.explanation_status = "completed"
-            db.session.commit()
-            print("DEBUG: Task completed successfully.")
+            explanation_text = gpt_response.choices[0].message.content
+            if not explanation_text:
+                 explanation_text = ""
+            explanation_text = explanation_text.strip()
             
-            return {"status": "completed", "question_id": question_id}
+            print(f"DEBUG: OpenAI Response Length: {len(explanation_text)}")
+            print(f"DEBUG: OpenAI Response Preview: {explanation_text[:100]}...")
+
+            if not explanation_text:
+                print("ERROR: OpenAI returned empty explanation.")
+                question.explanation = "AIからの回答が空でした。別の画像を試すか、しばらく待ってから再試行してください。"
+                question.explanation_status = "failed"
+            else:
+                question.explanation = explanation_text
+                question.explanation_status = "completed"
+            
+            db.session.commit()
+            print(f"DEBUG: Task finished. Status: {question.explanation_status}")
+            
+            return {"status": question.explanation_status, "question_id": question_id}
 
         except Exception as e:
             print(f"ERROR: Task failed with exception: {e}")

@@ -69,6 +69,37 @@
                     {% endif %}
                 </td>
             </tr>
+
+            <!-- Modal -->
+            <div class="modal fade" id="explainModal{{ q.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">AI Explanation (ID: {{ q.id }})</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if q.image_path %}
+                            <!-- 画像表示はPresigned URLが必要なため、実装次第では複雑。まずは解説テキストのみ表示 -->
+                            <!-- <img src="{{ q.image_path }}" class="img-fluid mb-3"> -->
+                            {% endif %}
+                            <div class="alert alert-secondary">
+                                <strong>Question:</strong><br>
+                                {{ q.content }}
+                            </div>
+                            <hr>
+                            <h5>Explanation:</h5>
+                            <div class="explanation-content">
+                                {{ q.explanation | replace('\n', '<br>') | safe }}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {% endfor %}
         </tbody>
     </table>

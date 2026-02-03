@@ -148,8 +148,13 @@ def analyze_image_task(self, question_id):
                 temperature=0.7
             )
             print("DEBUG: OpenAI API returned response.")
+            
+            # Debug full choice details
+            first_choice = gpt_response.choices[0]
+            print(f"DEBUG: Finish Reason: {first_choice.finish_reason}")
+            print(f"DEBUG: Choice Details: {first_choice}")
 
-            explanation_text = gpt_response.choices[0].message.content
+            explanation_text = first_choice.message.content
             if not explanation_text:
                  explanation_text = ""
             explanation_text = explanation_text.strip()

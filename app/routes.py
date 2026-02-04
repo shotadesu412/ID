@@ -239,7 +239,7 @@ def re_question():
                     }}
                 ]}
             ],
-            max_completion_tokens=1000,
+            max_completion_tokens=3000,
             temperature=0.7,
             timeout=60
         )

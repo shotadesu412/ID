@@ -144,7 +144,7 @@ def analyze_image_task(self, question_id):
                         }}
                     ]}
                 ],
-                max_completion_tokens=2000,
+                max_completion_tokens=5000,
                 temperature=0.7
             )
             print("DEBUG: OpenAI API returned response.")

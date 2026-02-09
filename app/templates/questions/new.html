@@ -42,28 +42,31 @@
                 <h6 class="card-subtitle mb-2 text-muted">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }} | {{ "中学生" if
                     item.grade == "middle" else "高校生" }}</h6>
 
-                {% if item.explanation_status == 'completed' %}
-                <div class="mt-3 bg-light p-3 rounded">
-                    <pre style="white-space: pre-wrap;" class="mb-0">{{ item.explanation }}</pre>
+                <div id="status-container-{{ item.id }}">
+                    {% if item.explanation_status == 'completed' %}
+                    <div class="mt-3 bg-light p-3 rounded">
+                        <div style="white-space: pre-wrap;" class="mb-0">{{ item.explanation }}</div>
 
-                    <!-- Re-question UI -->
-                    <hr>
-                    <div class="mt-3">
-                        <label class="form-label fw-bold text-secondary">追加で質問する</label>
-                        <div class="input-group">
-                            <textarea class="form-control" id="question_text_{{ item.id }}" rows="1"
-                                placeholder="解説のここがわかりません..."></textarea>
-                            <button class="btn btn-outline-primary" type="button"
-                                onclick="sendReQuestion({{ item.id }})">送信</button>
+                        <!-- Re-question UI -->
+                        <hr>
+                        <div class="mt-3">
+                            <label class="form-label fw-bold text-secondary">追加で質問する</label>
+                            <div class="input-group">
+                                <textarea class="form-control" id="question_text_{{ item.id }}" rows="1"
+                                    placeholder="解説のここがわかりません..."></textarea>
+                                <button class="btn btn-outline-primary" type="button"
+                                    onclick="sendReQuestion({{ item.id }})">送信</button>
+                            </div>
+                            <div id="requestion_result_{{ item.id }}" class="mt-2"></div>
                         </div>
-                        <div id="requestion_result_{{ item.id }}" class="mt-2"></div>
                     </div>
+                    {% elif item.explanation_status == 'failed' %}
+                    <p class="text-danger mt-2">解説の生成に失敗しました: {{ item.explanation }}</p>
+                    {% else %}
+                    <p class="text-info mt-2" data-status="processing" data-id="{{ item.id }}"><i
+                            class="spinner-border spinner-border-sm"></i> 解説を作成中...</p>
+                    {% endif %}
                 </div>
-                {% elif item.explanation_status == 'failed' %}
-                <p class="text-danger mt-2">解説の生成に失敗しました: {{ item.explanation }}</p>
-                {% else %}
-                <p class="text-info mt-2"><i class="spinner-border spinner-border-sm"></i> 解説を作成中...</p>
-                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -75,6 +78,62 @@
 </div>
 
 <script>
+    // Poll for status updates
+    document.addEventListener("DOMContentLoaded", function () {
+        setInterval(checkStatuses, 5000);
+    });
+
+    async function checkStatuses() {
+        const processingItems = document.querySelectorAll('[data-status="processing"]');
+        if (processingItems.length === 0) return;
+
+        processingItems.forEach(async (el) => {
+            const id = el.dataset.id;
+            try {
+                const res = await fetch(`/api/questions/${id}/status`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.status === 'completed') {
+                    const container = document.getElementById(`status-container-${id}`);
+                    container.innerHTML = `
+                        <div class="mt-3 bg-light p-3 rounded">
+                            <div style="white-space: pre-wrap;" class="mb-0">${escapeHtml(data.explanation)}</div>
+                            <hr>
+                            <div class="mt-3">
+                                <label class="form-label fw-bold text-secondary">追加で質問する</label>
+                                <div class="input-group">
+                                    <textarea class="form-control" id="question_text_${id}" rows="1" placeholder="解説のここがわかりません..."></textarea>
+                                    <button class="btn btn-outline-primary" type="button" onclick="sendReQuestion(${id})">送信</button>
+                                </div>
+                                <div id="requestion_result_${id}" class="mt-2"></div>
+                            </div>
+                        </div>
+                    `;
+                    // Trigger MathJax
+                    if (window.MathJax) {
+                        MathJax.typesetPromise([container]);
+                    }
+                } else if (data.status === 'failed') {
+                    const container = document.getElementById(`status-container-${id}`);
+                    container.innerHTML = `<p class="text-danger mt-2">解説の生成に失敗しました: ${escapeHtml(data.explanation)}</p>`;
+                }
+            } catch (e) {
+                console.error("Polling error", e);
+            }
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     async function sendReQuestion(questionId) {
         const textArea = document.getElementById(`question_text_${questionId}`);
         const resultDiv = document.getElementById(`requestion_result_${questionId}`);
@@ -103,9 +162,14 @@
 
             if (response.ok && data.success) {
                 // Append result
-                const answerHtml = `<div class="alert alert-success mt-2"><strong>AI:</strong><br>${data.answer.replace(/\n/g, '<br>')}</div>`;
+                const answerHtml = `<div class="alert alert-success mt-2"><strong>AI:</strong><br>${escapeHtml(data.answer).replace(/\n/g, '<br>')}</div>`;
                 resultDiv.innerHTML = answerHtml;
                 textArea.value = ''; // Clear input
+
+                // Trigger MathJax for the new content
+                if (window.MathJax) {
+                    MathJax.typesetPromise([resultDiv]);
+                }
             } else {
                 resultDiv.innerHTML = `<span class="text-danger">エラー: ${data.error || '不明なエラー'}</span>`;
             }

@@ -255,3 +255,21 @@ def re_question():
         print(f"Error in re_question: {str(e)}")
         return jsonify({"error": "再質問の処理中にエラーが発生しました"}), 500
 
+
+@main_bp.route("/api/questions/<int:id>/status")
+@login_required
+def get_question_status(id):
+    q = Question.query.get_or_404(id)
+
+    # 権限チェック
+    if current_user.role == ROLE_STUDENT and q.user_id != current_user.id:
+        return jsonify({"error": "Forbidden"}), 403
+    if current_user.role == ROLE_MANAGER and q.school_id != current_user.school_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    return jsonify({
+        "status": q.explanation_status,
+        "explanation": q.explanation,
+        "id": q.id
+    })
+

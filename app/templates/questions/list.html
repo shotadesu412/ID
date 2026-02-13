@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Questions</h2>
+    <h2>質問一覧</h2>
     {% if current_user.is_student %}
-    <a href="{{ url_for('main.new_question') }}" class="btn btn-primary">New Question</a>
+    <a href="{{ url_for('main.new_question') }}" class="btn btn-primary">新規質問</a>
     {% endif %}
 </div>
 
@@ -13,11 +13,11 @@
     <div class="card-body">
         <form method="GET" class="row g-3 align-items-center">
             <div class="col-auto">
-                <label for="school_id" class="col-form-label">School:</label>
+                <label for="school_id" class="col-form-label">校舎を選択:</label>
             </div>
             <div class="col-auto">
                 <select name="school_id" id="school_id" class="form-select" onchange="this.form.submit()">
-                    <option value="">All Schools (HQ only)</option>
+                    <option value="">全校舎（本部権限）</option>
                     {% for s in schools %}
                     <option value="{{ s.id }}" {% if current_school_id==s.id %}selected{% endif %}>{{ s.name }}</option>
                     {% endfor %}
@@ -30,7 +30,7 @@
 
 <div class="mb-3 text-end">
     <a href="{{ url_for('main.export_questions_csv', school_id=request.args.get('school_id')) }}"
-        class="btn btn-success btn-sm">Export CSV</a>
+        class="btn btn-success btn-sm">CSV出力</a>
 </div>
 
 <div class="table-responsive">
@@ -38,11 +38,11 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Content</th>
-                <th>User</th>
-                <th>School</th>
-                <th>Date</th>
-                <th>AI Explanation</th>
+                <th>質問内容</th>
+                <th>生徒メールアドレス</th>
+                <th>所属校舎</th>
+                <th>投稿日時</th>
+                <th>AI解説</th>
             </tr>
         </thead>
         <tbody>
@@ -56,13 +56,13 @@
                 <td>
                     {% if q.explanation_status == 'completed' %}
                     <button class="btn btn-info btn-sm" data-bs-toggle="modal"
-                        data-bs-target="#explainModal{{ q.id }}">View</button>
+                        data-bs-target="#explainModal{{ q.id }}">解説を表示</button>
                     {% elif q.explanation_status == 'processing' %}
-                    <span class="badge bg-warning">Processing...</span>
+                    <span class="badge bg-warning">作成中...</span>
                     {% elif q.image_path %}
                     <form action="{{ url_for('main.explain_question', id=q.id) }}" method="POST" class="d-inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-secondary btn-sm">Explain</button>
+                        <button type="submit" class="btn btn-secondary btn-sm">解説を生成</button>
                     </form>
                     {% else %}
                     <span class="text-muted">-</span>
@@ -81,7 +81,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">AI Explanation (ID: {{ q.id }})</h5>
+                <h5 class="modal-title">AIによる解説 (ID: {{ q.id }})</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -90,17 +90,17 @@
                 <!-- <img src="{{ q.image_path }}" class="img-fluid mb-3"> -->
                 {% endif %}
                 <div class="alert alert-secondary">
-                    <strong>Question:</strong><br>
+                    <strong>【問題】</strong><br>
                     {{ q.content }}
                 </div>
                 <hr>
-                <h5>Explanation:</h5>
+                <h5>【解説】</h5>
                 <div class="explanation-content">
                     {{ q.explanation | replace('\n', '<br>') | safe }}
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
             </div>
         </div>
     </div>
@@ -112,14 +112,14 @@
     <ul class="pagination justify-content-center">
         {% if pagination.has_prev %}
         <li class="page-item"><a class="page-link"
-                href="{{ url_for('main.list_questions', page=pagination.prev_num, school_id=request.args.get('school_id')) }}">Previous</a>
+                href="{{ url_for('main.list_questions', page=pagination.prev_num, school_id=request.args.get('school_id')) }}">前へ</a>
         </li>
         {% endif %}
-        <li class="page-item disabled"><span class="page-link">Page {{ pagination.page }} of {{ pagination.pages
-                }}</span></li>
+        <li class="page-item disabled"><span class="page-link">{{ pagination.page }} / {{ pagination.pages
+                }} ページ</span></li>
         {% if pagination.has_next %}
         <li class="page-item"><a class="page-link"
-                href="{{ url_for('main.list_questions', page=pagination.next_num, school_id=request.args.get('school_id')) }}">Next</a>
+                href="{{ url_for('main.list_questions', page=pagination.next_num, school_id=request.args.get('school_id')) }}">次へ</a>
         </li>
         {% endif %}
     </ul>

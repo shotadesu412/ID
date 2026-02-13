@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Support App</title>
+    <title>新LINE先生</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">Study Support</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">新LINE先生</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -22,11 +22,11 @@
                             current_user.role }})</span></li>
                     {% if current_user.is_hq %}
                     <li class="nav-item"><a class="nav-link text-warning"
-                            href="{{ url_for('admin.manage_schools') }}">HQ Admin</a></li>
+                            href="{{ url_for('admin.manage_schools') }}">本部管理</a></li>
                     {% endif %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Log out</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">ログアウト</a></li>
                     {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Log In</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">ログイン</a></li>
                     {% endif %}
                 </ul>
             </div>

@@ -10,6 +10,43 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 def _serializer():
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="pwd-reset")
 
+@auth_bp.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.list_questions"))
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        school_id = request.form.get("school_id")
+
+        if not email or not password or not school_id:
+            flash("すべての情報を入力してください", "warning")
+        elif password != confirm_password:
+            flash("パスワードが一致しません", "warning")
+        elif User.query.filter_by(email=email).first():
+            flash("このメールアドレスは既に登録されています", "warning")
+        else:
+            # Create user
+            from .models import ROLE_STUDENT
+            new_user = User(
+                email=email,
+                role=ROLE_STUDENT,
+                school_id=int(school_id)
+            )
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+            
+            login_user(new_user)
+            log_action(new_user, "register_success")
+            flash("登録が完了しました", "success")
+            return redirect(url_for("main.list_questions"))
+
+    schools = School.query.order_by(School.name).all()
+    return render_template("auth/register.html", schools=schools)
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":

@@ -90,7 +90,7 @@
         processingItems.forEach(async (el) => {
             const id = el.dataset.id;
             try {
-                const res = await fetch(`/api/questions/${id}/status`);
+                const res = await fetch(`/api/questions/${id}/status?t=${new Date().getTime()}`);
                 if (!res.ok) return;
                 const data = await res.json();
 

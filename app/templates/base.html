@@ -20,6 +20,10 @@
                     {% if current_user.is_authenticated %}
                     <li class="nav-item"><span class="nav-link text-light">{{ current_user.email }} ({{
                             current_user.role }})</span></li>
+                    {% if current_user.is_hq %}
+                    <li class="nav-item"><a class="nav-link text-warning"
+                            href="{{ url_for('admin.manage_schools') }}">HQ Admin</a></li>
+                    {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Log out</a></li>
                     {% else %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Log In</a></li>
